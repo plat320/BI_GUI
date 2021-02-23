@@ -1,3 +1,6 @@
 __pycache__
 build
 refer
+model_checkpoint_0216
+dataset
+*.spec

@@ -1,4 +1,4 @@
-
+ 
 # -*- coding: utf-8 -*-
 
 # Form implementation generated from reading ui file 'road.ui'
@@ -9,6 +9,8 @@
 import time
 import threading
 import multiprocessing
+import sys
+sys.setrecursionlimit(5000)
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 import random
@@ -70,7 +72,6 @@ class utils_test(QtCore.QThread):
     def changeBoolPass(self):
         # self.bool_pass = not self.bool_pass
         self.sem.release()
-        print("sem_release")
 
     def stop(self):
         self.quit()
@@ -82,15 +83,17 @@ class utils_test(QtCore.QThread):
         for i, test_data in enumerate(self.test_loader):
             if (self.classNum == 2 and test_data['label'].argmax(dim=1) == torch.tensor(0)):
                 continue
+            self.sem.acquire()
+            print(i)
+            stime = time.time()
+            time.sleep(1)
+
+
             org_image = test_data['input'].to(self.device)
             gt = test_data['label'].type(torch.FloatTensor).to(self.device)
             img_path = test_data['img_path'][0]
             model = self.model.to(self.device).eval()
 
-            self.sem.acquire()
-            print("aquire")
-
-            stime = time.time()
             #### forward path
             output = model(org_image)
 
@@ -102,7 +105,7 @@ class utils_test(QtCore.QThread):
 
             img_path = img_path.split('\\')
 
-            self.signal1.emit(self.tab, output_label[0], (gt_label==output_label), gt_label[0], img_path[4], img_path[-1], time.time()-stime)
+            self.signal1.emit(self.tab, output_label[0], (gt_label==output_label), gt_label[0], img_path[-3], img_path[-1], time.time()-stime)
 
 
 
@@ -1635,7 +1638,7 @@ class Ui_MainWindow(QtCore.QObject):
         # os.environ["CUDA_VISIBLE_DEVICES"] = str(0)
 
         # net_type = "resnet50"
-        image_dir = "C:\\BlackIce\\dataset"
+        image_dir = "C:\\sh\\dataset"
 
         # Device configuration
         device = torch.device('cpu')
@@ -1741,7 +1744,7 @@ class Ui_MainWindow(QtCore.QObject):
         # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         if mode==0 or mode==2:
-            model_path = "C:\\BlackIce\\model_checkpoint_0216\\checkpoint_last_wo_BI.pth.tar"
+            model_path = "C:\\sh\\model_checkpoint_0216\\checkpoint_last_wo_BI.pth.tar"
             checkpoint = torch.load(model_path, map_location=self.device)
             self.tab1_model.load_state_dict(checkpoint["model"])
             self.th_test_tab1 = utils_test(1, self.tab1_model, self.tab1_test_loader, 4, self.device)
@@ -1749,7 +1752,7 @@ class Ui_MainWindow(QtCore.QObject):
             self.th_test_tab1.start()
 
         if mode==1 or mode==2:
-            model_path = "C:\\BlackIce\\model_checkpoint_0216\\checkpoint_last_with_BI.pth.tar"
+            model_path = "C:\\sh\\model_checkpoint_0216\\checkpoint_last_with_BI.pth.tar"
             checkpoint = torch.load(model_path, map_location=self.device)
             self.tab2_model.load_state_dict(checkpoint["model"])
 
@@ -1760,7 +1763,7 @@ class Ui_MainWindow(QtCore.QObject):
 
     # set variable
     def setVariable(self, tab):
-        self.root_testImgFolder = "C:\\BlackIce\\dataset"
+        self.root_testImgFolder = "C:\\sh\\dataset"
         self.updateDistanceFunc = {
             'dry05': lambda: self.addDistanceCnt(self.dry_distance5_value),
             'dry10': lambda: self.addDistanceCnt(self.dry_distance10_value),
@@ -1902,7 +1905,7 @@ class Ui_MainWindow(QtCore.QObject):
                 self.th_test_tab2.changeBoolPass()
                 self.tab2_content_text.repaint()
             else:
-                self.setContentText(self.tab2_content_text, "Finish", "color: red;")
+                self.setContentText(self.tab2_content_text, "Finish : All image Predicted", "color: red;")
                 self.tab2_content_text.repaint()
                 self.clickStopBtn()
 
